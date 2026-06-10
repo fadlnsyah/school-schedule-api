@@ -40,6 +40,18 @@ func Health(c *gin.Context) {
 	})
 }
 
+// Create godoc
+// @Summary Create schedule
+// @Tags schedules
+// @Security ApiKeyAuth
+// @Accept json
+// @Produce json
+// @Param payload body dto.ScheduleRequest true "Schedule payload"
+// @Success 201 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]string
+// @Failure 409 {object} map[string]interface{}
+// @Router /api/schedules [post]
 func (ctrl *ScheduleController) Create(c *gin.Context) {
 	var req dto.ScheduleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -65,6 +77,21 @@ func (ctrl *ScheduleController) Create(c *gin.Context) {
 	utils.Success(c, http.StatusCreated, "Schedule created successfully", schedule)
 }
 
+// FindAll godoc
+// @Summary Get all schedules
+// @Tags schedules
+// @Security ApiKeyAuth
+// @Produce json
+// @Param class_code query string false "Class code"
+// @Param teacher_nik query string false "Teacher NIK"
+// @Param date query string false "Date YYYY-MM-DD"
+// @Param start_date query string false "Start date YYYY-MM-DD"
+// @Param end_date query string false "End date YYYY-MM-DD"
+// @Param page query int false "Page"
+// @Param limit query int false "Limit"
+// @Success 200 {object} map[string]interface{}
+// @Failure 401 {object} map[string]string
+// @Router /api/schedules [get]
 func (ctrl *ScheduleController) FindAll(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
@@ -94,6 +121,16 @@ func (ctrl *ScheduleController) FindAll(c *gin.Context) {
 	utils.SuccessWithMeta(c, http.StatusOK, "Schedules retrieved successfully", schedules, meta)
 }
 
+// FindByID godoc
+// @Summary Get schedule by ID
+// @Tags schedules
+// @Security ApiKeyAuth
+// @Produce json
+// @Param id path string true "Schedule ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 401 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Router /api/schedules/{id} [get]
 func (ctrl *ScheduleController) FindByID(c *gin.Context) {
 	schedule, err := ctrl.Service.FindByID(c.Param("id"))
 	if err != nil {
@@ -108,6 +145,20 @@ func (ctrl *ScheduleController) FindByID(c *gin.Context) {
 	utils.Success(c, http.StatusOK, "Schedule retrieved successfully", schedule)
 }
 
+// Update godoc
+// @Summary Update schedule
+// @Tags schedules
+// @Security ApiKeyAuth
+// @Accept json
+// @Produce json
+// @Param id path string true "Schedule ID"
+// @Param payload body dto.ScheduleRequest true "Schedule payload"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 409 {object} map[string]interface{}
+// @Router /api/schedules/{id} [put]
 func (ctrl *ScheduleController) Update(c *gin.Context) {
 	var req dto.ScheduleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -137,6 +188,16 @@ func (ctrl *ScheduleController) Update(c *gin.Context) {
 	utils.Success(c, http.StatusOK, "Schedule updated successfully", schedule)
 }
 
+// Delete godoc
+// @Summary Delete schedule
+// @Tags schedules
+// @Security ApiKeyAuth
+// @Produce json
+// @Param id path string true "Schedule ID"
+// @Success 200 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Router /api/schedules/{id} [delete]
 func (ctrl *ScheduleController) Delete(c *gin.Context) {
 	if err := ctrl.Service.Delete(c.Param("id")); err != nil {
 		if services.IsNotFound(err) {
@@ -150,6 +211,17 @@ func (ctrl *ScheduleController) Delete(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Schedule deleted successfully"})
 }
 
+// Student godoc
+// @Summary Get student schedule by class and date
+// @Tags frontend
+// @Security ApiKeyAuth
+// @Produce json
+// @Param class_code query string true "Class code"
+// @Param date query string true "Date YYYY-MM-DD"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]string
+// @Router /api/schedules/student [get]
 func (ctrl *ScheduleController) Student(c *gin.Context) {
 	classCode := c.Query("class_code")
 	date := c.Query("date")
@@ -176,6 +248,18 @@ func (ctrl *ScheduleController) Student(c *gin.Context) {
 	c.JSON(http.StatusOK, studentResponse(classCode, date, schedules))
 }
 
+// Teacher godoc
+// @Summary Get teacher schedule and total JP
+// @Tags frontend
+// @Security ApiKeyAuth
+// @Produce json
+// @Param teacher_nik query string true "Teacher NIK"
+// @Param start_date query string true "Start date YYYY-MM-DD"
+// @Param end_date query string true "End date YYYY-MM-DD"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]string
+// @Router /api/schedules/teacher [get]
 func (ctrl *ScheduleController) Teacher(c *gin.Context) {
 	teacherNIK := c.Query("teacher_nik")
 	startDate := c.Query("start_date")
@@ -198,6 +282,17 @@ func (ctrl *ScheduleController) Teacher(c *gin.Context) {
 	c.JSON(http.StatusOK, teacherResponse(teacherNIK, startDate, endDate, schedules))
 }
 
+// RecapJP godoc
+// @Summary Get JP recap by teacher
+// @Tags reports
+// @Security ApiKeyAuth
+// @Produce json
+// @Param start_date query string true "Start date YYYY-MM-DD"
+// @Param end_date query string true "End date YYYY-MM-DD"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]string
+// @Router /api/schedules/report/rekap-jp [get]
 func (ctrl *ScheduleController) RecapJP(c *gin.Context) {
 	startDate := c.Query("start_date")
 	endDate := c.Query("end_date")
@@ -219,6 +314,17 @@ func (ctrl *ScheduleController) RecapJP(c *gin.Context) {
 	})
 }
 
+// Upload godoc
+// @Summary Upload schedules from Excel
+// @Tags excel
+// @Security ApiKeyAuth
+// @Accept multipart/form-data
+// @Produce json
+// @Param file formData file true "Excel .xlsx file"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Router /api/schedules/upload [post]
 func (ctrl *ScheduleController) Upload(c *gin.Context) {
 	file, err := c.FormFile("file")
 	if err != nil {
@@ -255,6 +361,17 @@ func (ctrl *ScheduleController) Upload(c *gin.Context) {
 	})
 }
 
+// Export godoc
+// @Summary Export JP recap to Excel
+// @Tags excel
+// @Security ApiKeyAuth
+// @Produce application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+// @Param start_date query string true "Start date YYYY-MM-DD"
+// @Param end_date query string true "End date YYYY-MM-DD"
+// @Success 200 {file} file
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]string
+// @Router /api/schedules/export [get]
 func (ctrl *ScheduleController) Export(c *gin.Context) {
 	startDate := c.Query("start_date")
 	endDate := c.Query("end_date")

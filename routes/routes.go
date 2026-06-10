@@ -6,6 +6,8 @@ import (
 	"school-schedule-api/services"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"gorm.io/gorm"
 )
 
@@ -15,6 +17,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	scheduleController := controllers.NewScheduleController(scheduleService)
 
 	router.GET("/health", controllers.Health)
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	api := router.Group("/api")
 	api.Use(middleware.APIKeyMiddleware())

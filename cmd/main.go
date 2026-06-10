@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"school-schedule-api/config"
+	_ "school-schedule-api/docs"
 	"school-schedule-api/models"
 	"school-schedule-api/routes"
 )
@@ -11,6 +12,9 @@ import (
 // @title School Schedule API
 // @version 1.0
 // @description REST API for school schedule management.
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name x-api-key
 // @BasePath /
 func main() {
 	config.LoadEnv()
