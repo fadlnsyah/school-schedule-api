@@ -1,9 +1,11 @@
 package main
 
 import (
-	"os"
+	"log"
 
-	"github.com/gin-gonic/gin"
+	"school-schedule-api/config"
+	"school-schedule-api/models"
+	"school-schedule-api/routes"
 )
 
 // @title School Schedule API
@@ -11,24 +13,18 @@ import (
 // @description REST API for school schedule management.
 // @BasePath /
 func main() {
-	router := gin.Default()
+	config.LoadEnv()
 
-	router.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"status":  "ok",
-			"message": "School Schedule API is running",
-		})
-	})
-
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = os.Getenv("APP_PORT")
+	db, err := config.ConnectDatabase()
+	if err != nil {
+		log.Fatal("failed to connect database")
 	}
-	if port == "" {
-		port = "8080"
+	if err := db.AutoMigrate(&models.Schedule{}); err != nil {
+		log.Fatal("failed to migrate database")
 	}
 
-	if err := router.Run(":" + port); err != nil {
-		panic(err)
+	router := routes.SetupRouter(db)
+	if err := router.Run(":" + config.AppPort()); err != nil {
+		log.Fatal("failed to start server")
 	}
 }
