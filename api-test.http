@@ -1,0 +1,54 @@
+@baseUrl = http://localhost:8080
+@apiKey = SECRET123
+
+### Health check
+GET {{baseUrl}}/health
+
+### Get all schedules
+GET {{baseUrl}}/api/schedules?page=1&limit=10
+x-api-key: {{apiKey}}
+
+### Create schedule
+POST {{baseUrl}}/api/schedules
+x-api-key: {{apiKey}}
+Content-Type: application/json
+
+{
+  "class_code": "XA01",
+  "class_name": "X-A",
+  "subject_code": "CHEM",
+  "teacher_nik": "20222029",
+  "teacher_name": "Najdin Aqmarina, S.Pd.",
+  "date": "2025-02-10",
+  "jam_ke": 2,
+  "time_start": "08:40:00",
+  "time_end": "09:20:00"
+}
+
+### Get student schedule
+GET {{baseUrl}}/api/schedules/student?class_code=XA01&date=2025-02-10
+x-api-key: {{apiKey}}
+
+### Get teacher schedule
+GET {{baseUrl}}/api/schedules/teacher?teacher_nik=20222029&start_date=2025-02-10&end_date=2025-02-14
+x-api-key: {{apiKey}}
+
+### Get rekap JP
+GET {{baseUrl}}/api/schedules/report/rekap-jp?start_date=2025-02-01&end_date=2025-02-28
+x-api-key: {{apiKey}}
+
+### Export Excel
+GET {{baseUrl}}/api/schedules/export?start_date=2025-02-01&end_date=2025-02-28
+x-api-key: {{apiKey}}
+
+### Upload Excel
+POST {{baseUrl}}/api/schedules/upload
+x-api-key: {{apiKey}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="sample-schedules.xlsx"
+Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+
+< ./examples/sample-schedules.xlsx
+--boundary--

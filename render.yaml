@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: school-schedule-api
+    env: go
+    buildCommand: go build -o main ./cmd/main.go
+    startCommand: ./main
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: API_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
