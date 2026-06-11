@@ -359,15 +359,16 @@ func (ctrl *ScheduleController) Upload(c *gin.Context) {
 }
 
 // Export godoc
-// @Summary Export JP recap to Excel
+// @Summary Export teacher JP recap to Excel
+// @Description Downloads an .xlsx recap with teacher, classes taught, weekly JP columns, and total JP.
 // @Tags excel
 // @Security ApiKeyAuth
 // @Produce application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
 // @Param start_date query string true "Start date YYYY-MM-DD"
 // @Param end_date query string true "End date YYYY-MM-DD"
 // @Success 200 {file} file
-// @Failure 400 {object} map[string]interface{}
-// @Failure 401 {object} map[string]string
+// @Failure 400 {object} dto.ErrorWithDetailsResponse
+// @Failure 401 {object} dto.ErrorResponse
 // @Router /api/schedules/export [get]
 func (ctrl *ScheduleController) Export(c *gin.Context) {
 	startDate := c.Query("start_date")
@@ -384,7 +385,7 @@ func (ctrl *ScheduleController) Export(c *gin.Context) {
 	}
 	defer func() { _ = file.Close() }()
 
-	filename := "rekap-jp-" + startDate + "-" + endDate + ".xlsx"
+	filename := "rekap-jp-" + startDate + "-to-" + endDate + ".xlsx"
 	c.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 	c.Header("Content-Disposition", `attachment; filename="`+filename+`"`)
 	c.Header("File-Name", filename)

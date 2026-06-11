@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"mime/multipart"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	"school-schedule-api/dto"
+	"school-schedule-api/models"
 
 	"github.com/google/uuid"
 	"github.com/xuri/excelize/v2"
@@ -27,6 +29,14 @@ type UploadResult struct {
 
 type ExcelService struct {
 	ScheduleService *ScheduleService
+}
+
+type exportTeacherRecap struct {
+	TeacherNIK  string
+	TeacherName string
+	Classes     map[string]string
+	Weeks       [5]int
+	TotalJP     int
 }
 
 func NewExcelService(scheduleService *ScheduleService) *ExcelService {
@@ -108,7 +118,7 @@ func (s *ExcelService) ImportSchedules(file *multipart.FileHeader, savedPath str
 }
 
 func (s *ExcelService) ExportRecapJP(startDate string, endDate string) (*excelize.File, error) {
-	recap, err := s.ScheduleService.RecapJP(startDate, endDate)
+	rows, err := s.buildWeeklyTeacherRecap(startDate, endDate)
 	if err != nil {
 		return nil, err
 	}
@@ -117,9 +127,9 @@ func (s *ExcelService) ExportRecapJP(startDate string, endDate string) (*exceliz
 	sheet := "Rekap JP"
 	f.SetSheetName("Sheet1", sheet)
 
-	_ = f.MergeCell(sheet, "A1", "D1")
+	_ = f.MergeCell(sheet, "A1", "J1")
 	_ = f.SetCellValue(sheet, "A1", "Rekap Jam Pelajaran Pengajar")
-	_ = f.MergeCell(sheet, "A2", "D2")
+	_ = f.MergeCell(sheet, "A2", "J2")
 	_ = f.SetCellValue(sheet, "A2", "Periode: "+startDate+" s/d "+endDate)
 
 	headerStyle, _ := f.NewStyle(&excelize.Style{
@@ -134,17 +144,28 @@ func (s *ExcelService) ExportRecapJP(startDate string, endDate string) (*exceliz
 	})
 	cellStyle, _ := f.NewStyle(&excelize.Style{Border: borderStyle()})
 
-	_ = f.SetCellStyle(sheet, "A1", "D1", titleStyle)
-	headers := []string{"No", "NIK Guru", "Nama Guru", "Total JP"}
+	_ = f.SetCellStyle(sheet, "A1", "J1", titleStyle)
+	headers := []string{"No", "NIK", "Nama Pengajar", "Kelas yg Diajar", "Pekan 1", "Pekan 2", "Pekan 3", "Pekan 4", "Pekan 5", "Total JP"}
 	for i, header := range headers {
 		cell, _ := excelize.CoordinatesToCellName(i+1, 4)
 		_ = f.SetCellValue(sheet, cell, header)
 		_ = f.SetCellStyle(sheet, cell, cell, headerStyle)
 	}
 
-	for i, row := range recap.Rekap {
+	for i, row := range rows {
 		r := i + 5
-		values := []any{i + 1, row.TeacherNIK, row.TeacherName, row.TotalJP}
+		values := []any{
+			i + 1,
+			row.TeacherNIK,
+			row.TeacherName,
+			strings.Join(sortedClassNames(row.Classes), ", "),
+			row.Weeks[0],
+			row.Weeks[1],
+			row.Weeks[2],
+			row.Weeks[3],
+			row.Weeks[4],
+			row.TotalJP,
+		}
 		for col, value := range values {
 			cell, _ := excelize.CoordinatesToCellName(col+1, r)
 			_ = f.SetCellValue(sheet, cell, value)
@@ -155,9 +176,94 @@ func (s *ExcelService) ExportRecapJP(startDate string, endDate string) (*exceliz
 	_ = f.SetColWidth(sheet, "A", "A", 8)
 	_ = f.SetColWidth(sheet, "B", "B", 18)
 	_ = f.SetColWidth(sheet, "C", "C", 34)
-	_ = f.SetColWidth(sheet, "D", "D", 12)
+	_ = f.SetColWidth(sheet, "D", "D", 32)
+	_ = f.SetColWidth(sheet, "E", "J", 12)
 
 	return f, nil
+}
+
+func (s *ExcelService) buildWeeklyTeacherRecap(startDate string, endDate string) ([]exportTeacherRecap, error) {
+	var schedules []models.Schedule
+	err := s.ScheduleService.DB.
+		Where("date >= ? AND date <= ?", startDate, endDate).
+		Order("teacher_name ASC, teacher_nik ASC, date ASC").
+		Find(&schedules).Error
+	if err != nil {
+		return nil, err
+	}
+
+	recapByTeacher := make(map[string]*exportTeacherRecap)
+	for _, schedule := range schedules {
+		key := schedule.TeacherNIK + "|" + schedule.TeacherName
+		recap, exists := recapByTeacher[key]
+		if !exists {
+			recap = &exportTeacherRecap{
+				TeacherNIK:  schedule.TeacherNIK,
+				TeacherName: schedule.TeacherName,
+				Classes:     map[string]string{},
+			}
+			recapByTeacher[key] = recap
+		}
+
+		classLabel := strings.TrimSpace(schedule.ClassName)
+		if classLabel == "" {
+			classLabel = strings.TrimSpace(schedule.ClassCode)
+		}
+		if classLabel != "" {
+			recap.Classes[schedule.ClassCode+"|"+schedule.ClassName] = classLabel
+		}
+
+		weekIndex, ok := weekIndexFromDate(schedule.Date)
+		if ok {
+			recap.Weeks[weekIndex]++
+			recap.TotalJP++
+		}
+	}
+
+	rows := make([]exportTeacherRecap, 0, len(recapByTeacher))
+	for _, recap := range recapByTeacher {
+		rows = append(rows, *recap)
+	}
+	sort.SliceStable(rows, func(i, j int) bool {
+		if rows[i].TotalJP == rows[j].TotalJP {
+			return rows[i].TeacherName < rows[j].TeacherName
+		}
+		return rows[i].TotalJP > rows[j].TotalJP
+	})
+
+	return rows, nil
+}
+
+func weekIndexFromDate(value string) (int, bool) {
+	if len(value) > len("2006-01-02") {
+		value = value[:len("2006-01-02")]
+	}
+	parsed, err := time.Parse("2006-01-02", value)
+	if err != nil {
+		return 0, false
+	}
+
+	switch day := parsed.Day(); {
+	case day <= 7:
+		return 0, true
+	case day <= 14:
+		return 1, true
+	case day <= 21:
+		return 2, true
+	case day <= 28:
+		return 3, true
+	default:
+		return 4, true
+	}
+}
+
+func sortedClassNames(classes map[string]string) []string {
+	result := make([]string, 0, len(classes))
+	for _, className := range classes {
+		result = append(result, className)
+	}
+	sort.Strings(result)
+	return result
 }
 
 func borderStyle() []excelize.Border {

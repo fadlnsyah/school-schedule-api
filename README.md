@@ -147,6 +147,20 @@ curl -X GET "https://school-schedule-api-p7pg.onrender.com/api/schedules/export?
   --output rekap-jp.xlsx
 ```
 
+The exported file contains this table format:
+
+```text
+No | NIK | Nama Pengajar | Kelas yg Diajar | Pekan 1 | Pekan 2 | Pekan 3 | Pekan 4 | Pekan 5 | Total JP
+```
+
+Weekly JP is calculated from the day of month:
+
+- Pekan 1: day 1-7
+- Pekan 2: day 8-14
+- Pekan 3: day 15-21
+- Pekan 4: day 22-28
+- Pekan 5: day 29-31
+
 ## Foundation/Admin Recap Response
 
 `GET /api/schedules/report/rekap-jp` returns:

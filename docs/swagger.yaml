@@ -301,6 +301,8 @@ paths:
       - schedules
   /api/schedules/export:
     get:
+      description: Downloads an .xlsx recap with teacher, classes taught, weekly JP
+        columns, and total JP.
       parameters:
       - description: Start date YYYY-MM-DD
         in: query
@@ -322,17 +324,14 @@ paths:
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.ErrorWithDetailsResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - ApiKeyAuth: []
-      summary: Export JP recap to Excel
+      summary: Export teacher JP recap to Excel
       tags:
       - excel
   /api/schedules/report/rekap-jp:
