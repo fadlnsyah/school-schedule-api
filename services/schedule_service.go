@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -25,12 +26,6 @@ type ScheduleFilters struct {
 	EndDate    string
 	Page       int
 	Limit      int
-}
-
-type TeacherRecap struct {
-	TeacherNIK  string `json:"teacher_nik"`
-	TeacherName string `json:"teacher_name"`
-	TotalJP     int64  `json:"total_jp"`
 }
 
 func NewScheduleService(db *gorm.DB) *ScheduleService {
@@ -220,15 +215,66 @@ func (s *ScheduleService) TeacherSchedule(teacherNIK string, startDate string, e
 	return schedules, err
 }
 
-func (s *ScheduleService) RecapJP(startDate string, endDate string) ([]TeacherRecap, error) {
-	var data []TeacherRecap
+type foundationRecapRow struct {
+	TeacherNIK  string
+	TeacherName string
+	ClassCode   string
+	ClassName   string
+	JumlahJP    int64
+}
+
+func (s *ScheduleService) RecapJP(startDate string, endDate string) (dto.FoundationRecapResponse, error) {
+	response := dto.FoundationRecapResponse{
+		Periode: dto.PeriodResponse{
+			StartDate: startDate,
+			EndDate:   endDate,
+		},
+		Rekap: []dto.FoundationRecapTeacher{},
+	}
+
+	var rows []foundationRecapRow
 	err := s.DB.Model(&models.Schedule{}).
-		Select("teacher_nik, teacher_name, COUNT(*) AS total_jp").
-		Where("date BETWEEN ? AND ?", startDate, endDate).
-		Group("teacher_nik, teacher_name").
-		Order("total_jp DESC, teacher_name ASC").
-		Scan(&data).Error
-	return data, err
+		Select("teacher_nik, teacher_name, class_code, class_name, COUNT(*) AS jumlah_jp").
+		Where("date >= ? AND date <= ?", startDate, endDate).
+		Group("teacher_nik, teacher_name, class_code, class_name").
+		Order("teacher_name ASC, class_name ASC, class_code ASC").
+		Scan(&rows).Error
+	if err != nil {
+		return response, err
+	}
+
+	teacherIndex := make(map[string]int)
+	for _, row := range rows {
+		key := row.TeacherNIK + "|" + row.TeacherName
+		index, exists := teacherIndex[key]
+		if !exists {
+			response.Rekap = append(response.Rekap, dto.FoundationRecapTeacher{
+				TeacherNIK:  row.TeacherNIK,
+				TeacherName: row.TeacherName,
+				Detail:      []dto.FoundationRecapClassDetail{},
+			})
+			index = len(response.Rekap) - 1
+			teacherIndex[key] = index
+		}
+
+		response.Rekap[index].TotalJP += row.JumlahJP
+		response.Rekap[index].Detail = append(response.Rekap[index].Detail, dto.FoundationRecapClassDetail{
+			ClassCode: row.ClassCode,
+			ClassName: row.ClassName,
+			JumlahJP:  row.JumlahJP,
+		})
+		response.Rekap[index].TotalKelas = len(response.Rekap[index].Detail)
+	}
+
+	response.TotalPengajar = len(response.Rekap)
+	sort.SliceStable(response.Rekap, func(i, j int) bool {
+		if response.Rekap[i].TotalJP == response.Rekap[j].TotalJP {
+			return response.Rekap[i].TeacherName < response.Rekap[j].TeacherName
+		}
+		return response.Rekap[i].TotalJP > response.Rekap[j].TotalJP
+	})
+
+	return response, nil
 }
 
 func (s *ScheduleService) CheckConflicts(schedule models.Schedule, ignoreID *uuid.UUID) ([]string, error) {

@@ -108,7 +108,7 @@ func (s *ExcelService) ImportSchedules(file *multipart.FileHeader, savedPath str
 }
 
 func (s *ExcelService) ExportRecapJP(startDate string, endDate string) (*excelize.File, error) {
-	data, err := s.ScheduleService.RecapJP(startDate, endDate)
+	recap, err := s.ScheduleService.RecapJP(startDate, endDate)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +142,7 @@ func (s *ExcelService) ExportRecapJP(startDate string, endDate string) (*exceliz
 		_ = f.SetCellStyle(sheet, cell, cell, headerStyle)
 	}
 
-	for i, row := range data {
+	for i, row := range recap.Rekap {
 		r := i + 5
 		values := []any{i + 1, row.TeacherNIK, row.TeacherName, row.TotalJP}
 		for col, value := range values {

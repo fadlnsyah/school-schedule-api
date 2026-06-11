@@ -283,15 +283,16 @@ func (ctrl *ScheduleController) Teacher(c *gin.Context) {
 }
 
 // RecapJP godoc
-// @Summary Get JP recap by teacher
+// @Summary Get foundation/admin JP recap by teacher
+// @Description Returns teacher JP recap for a date range, including total JP, unique class count, and per-class JP detail.
 // @Tags reports
 // @Security ApiKeyAuth
 // @Produce json
 // @Param start_date query string true "Start date YYYY-MM-DD"
 // @Param end_date query string true "End date YYYY-MM-DD"
-// @Success 200 {object} map[string]interface{}
-// @Failure 400 {object} map[string]interface{}
-// @Failure 401 {object} map[string]string
+// @Success 200 {object} dto.FoundationRecapResponse
+// @Failure 400 {object} dto.ErrorWithDetailsResponse
+// @Failure 401 {object} dto.ErrorResponse
 // @Router /api/schedules/report/rekap-jp [get]
 func (ctrl *ScheduleController) RecapJP(c *gin.Context) {
 	startDate := c.Query("start_date")
@@ -301,17 +302,13 @@ func (ctrl *ScheduleController) RecapJP(c *gin.Context) {
 		return
 	}
 
-	data, err := ctrl.Service.RecapJP(startDate, endDate)
+	response, err := ctrl.Service.RecapJP(startDate, endDate)
 	if err != nil {
 		utils.Error(c, http.StatusInternalServerError, "Failed to retrieve recap JP")
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"start_date": startDate,
-		"end_date":   endDate,
-		"data":       data,
-	})
+	c.JSON(http.StatusOK, response)
 }
 
 // Upload godoc

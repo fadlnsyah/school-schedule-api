@@ -1,4 +1,72 @@
 definitions:
+  dto.ErrorResponse:
+    properties:
+      error:
+        example: Unauthorized
+        type: string
+    type: object
+  dto.ErrorWithDetailsResponse:
+    properties:
+      details:
+        items:
+          type: string
+        type: array
+      error:
+        example: Validation failed
+        type: string
+    type: object
+  dto.FoundationRecapClassDetail:
+    properties:
+      class_code:
+        example: XA01
+        type: string
+      class_name:
+        example: X-A
+        type: string
+      jumlah_jp:
+        example: 15
+        type: integer
+    type: object
+  dto.FoundationRecapResponse:
+    properties:
+      periode:
+        $ref: '#/definitions/dto.PeriodResponse'
+      rekap:
+        items:
+          $ref: '#/definitions/dto.FoundationRecapTeacher'
+        type: array
+      total_pengajar:
+        example: 3
+        type: integer
+    type: object
+  dto.FoundationRecapTeacher:
+    properties:
+      detail:
+        items:
+          $ref: '#/definitions/dto.FoundationRecapClassDetail'
+        type: array
+      teacher_name:
+        example: Najdin Aqmarina, S.Pd.
+        type: string
+      teacher_nik:
+        example: "20222029"
+        type: string
+      total_jp:
+        example: 40
+        type: integer
+      total_kelas:
+        example: 3
+        type: integer
+    type: object
+  dto.PeriodResponse:
+    properties:
+      end_date:
+        example: "2025-02-28"
+        type: string
+      start_date:
+        example: "2025-02-01"
+        type: string
+    type: object
   dto.ScheduleRequest:
     properties:
       class_code:
@@ -269,6 +337,8 @@ paths:
       - excel
   /api/schedules/report/rekap-jp:
     get:
+      description: Returns teacher JP recap for a date range, including total JP,
+        unique class count, and per-class JP detail.
       parameters:
       - description: Start date YYYY-MM-DD
         in: query
@@ -286,22 +356,18 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.FoundationRecapResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.ErrorWithDetailsResponse'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.ErrorResponse'
       security:
       - ApiKeyAuth: []
-      summary: Get JP recap by teacher
+      summary: Get foundation/admin JP recap by teacher
       tags:
       - reports
   /api/schedules/student:

@@ -216,13 +216,14 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
+                "description": "Returns teacher JP recap for a date range, including total JP, unique class count, and per-class JP detail.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "reports"
                 ],
-                "summary": "Get JP recap by teacher",
+                "summary": "Get foundation/admin JP recap by teacher",
                 "parameters": [
                     {
                         "type": "string",
@@ -243,24 +244,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/dto.FoundationRecapResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/dto.ErrorWithDetailsResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -646,6 +642,105 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "dto.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "Unauthorized"
+                }
+            }
+        },
+        "dto.ErrorWithDetailsResponse": {
+            "type": "object",
+            "properties": {
+                "details": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "error": {
+                    "type": "string",
+                    "example": "Validation failed"
+                }
+            }
+        },
+        "dto.FoundationRecapClassDetail": {
+            "type": "object",
+            "properties": {
+                "class_code": {
+                    "type": "string",
+                    "example": "XA01"
+                },
+                "class_name": {
+                    "type": "string",
+                    "example": "X-A"
+                },
+                "jumlah_jp": {
+                    "type": "integer",
+                    "example": 15
+                }
+            }
+        },
+        "dto.FoundationRecapResponse": {
+            "type": "object",
+            "properties": {
+                "periode": {
+                    "$ref": "#/definitions/dto.PeriodResponse"
+                },
+                "rekap": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.FoundationRecapTeacher"
+                    }
+                },
+                "total_pengajar": {
+                    "type": "integer",
+                    "example": 3
+                }
+            }
+        },
+        "dto.FoundationRecapTeacher": {
+            "type": "object",
+            "properties": {
+                "detail": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.FoundationRecapClassDetail"
+                    }
+                },
+                "teacher_name": {
+                    "type": "string",
+                    "example": "Najdin Aqmarina, S.Pd."
+                },
+                "teacher_nik": {
+                    "type": "string",
+                    "example": "20222029"
+                },
+                "total_jp": {
+                    "type": "integer",
+                    "example": 40
+                },
+                "total_kelas": {
+                    "type": "integer",
+                    "example": 3
+                }
+            }
+        },
+        "dto.PeriodResponse": {
+            "type": "object",
+            "properties": {
+                "end_date": {
+                    "type": "string",
+                    "example": "2025-02-28"
+                },
+                "start_date": {
+                    "type": "string",
+                    "example": "2025-02-01"
+                }
+            }
+        },
         "dto.ScheduleRequest": {
             "type": "object",
             "properties": {
