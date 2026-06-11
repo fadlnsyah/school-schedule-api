@@ -213,7 +213,7 @@ func (s *ExcelService) buildWeeklyTeacherRecap(startDate string, endDate string)
 			recap.Classes[schedule.ClassCode+"|"+schedule.ClassName] = classLabel
 		}
 
-		weekIndex, ok := weekIndexFromDate(schedule.Date)
+		weekIndex, ok := weekIndexFromDate(schedule.Date.String())
 		if ok {
 			recap.Weeks[weekIndex]++
 			recap.TotalJP++

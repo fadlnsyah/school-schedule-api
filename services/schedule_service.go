@@ -123,16 +123,20 @@ func ValidateDateRange(startDate string, endDate string) []string {
 }
 
 func RequestToSchedule(req dto.ScheduleRequest) models.Schedule {
+	date, _ := models.ParseDateOnly(strings.TrimSpace(req.Date))
+	timeStart, _ := models.ParseTimeOnly(strings.TrimSpace(req.TimeStart))
+	timeEnd, _ := models.ParseTimeOnly(strings.TrimSpace(req.TimeEnd))
+
 	return models.Schedule{
 		ClassCode:   strings.TrimSpace(req.ClassCode),
 		ClassName:   strings.TrimSpace(req.ClassName),
 		SubjectCode: strings.TrimSpace(req.SubjectCode),
 		TeacherNIK:  strings.TrimSpace(req.TeacherNIK),
 		TeacherName: strings.TrimSpace(req.TeacherName),
-		Date:        strings.TrimSpace(req.Date),
+		Date:        date,
 		JamKe:       req.JamKe,
-		TimeStart:   strings.TrimSpace(req.TimeStart),
-		TimeEnd:     strings.TrimSpace(req.TimeEnd),
+		TimeStart:   timeStart,
+		TimeEnd:     timeEnd,
 	}
 }
 
@@ -201,7 +205,8 @@ func (s *ScheduleService) Delete(id string) error {
 
 func (s *ScheduleService) StudentSchedule(classCode string, date string) ([]models.Schedule, error) {
 	var schedules []models.Schedule
-	err := s.DB.Where("class_code = ? AND date = ?", classCode, date).
+	parsedDate, _ := models.ParseDateOnly(date)
+	err := s.DB.Where("class_code = ? AND date = ?", classCode, parsedDate).
 		Order("jam_ke ASC, time_start ASC").
 		Find(&schedules).Error
 	return schedules, err
@@ -209,7 +214,9 @@ func (s *ScheduleService) StudentSchedule(classCode string, date string) ([]mode
 
 func (s *ScheduleService) TeacherSchedule(teacherNIK string, startDate string, endDate string) ([]models.Schedule, error) {
 	var schedules []models.Schedule
-	err := s.DB.Where("teacher_nik = ? AND date BETWEEN ? AND ?", teacherNIK, startDate, endDate).
+	parsedStartDate, _ := models.ParseDateOnly(startDate)
+	parsedEndDate, _ := models.ParseDateOnly(endDate)
+	err := s.DB.Where("teacher_nik = ? AND date BETWEEN ? AND ?", teacherNIK, parsedStartDate, parsedEndDate).
 		Order("date ASC, time_start ASC, jam_ke ASC").
 		Find(&schedules).Error
 	return schedules, err
@@ -233,9 +240,11 @@ func (s *ScheduleService) RecapJP(startDate string, endDate string) (dto.Foundat
 	}
 
 	var rows []foundationRecapRow
+	parsedStartDate, _ := models.ParseDateOnly(startDate)
+	parsedEndDate, _ := models.ParseDateOnly(endDate)
 	err := s.DB.Model(&models.Schedule{}).
 		Select("teacher_nik, teacher_name, class_code, class_name, COUNT(*) AS jumlah_jp").
-		Where("date >= ? AND date <= ?", startDate, endDate).
+		Where("date >= ? AND date <= ?", parsedStartDate, parsedEndDate).
 		Group("teacher_nik, teacher_name, class_code, class_name").
 		Order("teacher_name ASC, class_name ASC, class_code ASC").
 		Scan(&rows).Error
@@ -312,13 +321,19 @@ func (s *ScheduleService) applyFilters(query *gorm.DB, filters ScheduleFilters) 
 		query = query.Where("teacher_nik = ?", filters.TeacherNIK)
 	}
 	if filters.Date != "" {
-		query = query.Where("date = ?", filters.Date)
+		if parsedDate, err := models.ParseDateOnly(filters.Date); err == nil {
+			query = query.Where("date = ?", parsedDate)
+		}
 	}
 	if filters.StartDate != "" {
-		query = query.Where("date >= ?", filters.StartDate)
+		if parsedStartDate, err := models.ParseDateOnly(filters.StartDate); err == nil {
+			query = query.Where("date >= ?", parsedStartDate)
+		}
 	}
 	if filters.EndDate != "" {
-		query = query.Where("date <= ?", filters.EndDate)
+		if parsedEndDate, err := models.ParseDateOnly(filters.EndDate); err == nil {
+			query = query.Where("date <= ?", parsedEndDate)
+		}
 	}
 
 	return query
