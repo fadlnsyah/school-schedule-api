@@ -289,7 +289,12 @@ func (s *ScheduleService) RecapJP(startDate string, endDate string) (dto.Foundat
 func (s *ScheduleService) CheckConflicts(schedule models.Schedule, ignoreID *uuid.UUID) ([]string, error) {
 	var conflicts []string
 	base := s.DB.Model(&models.Schedule{}).
-		Where("date = ? AND time_start < ? AND time_end > ?", schedule.Date, schedule.TimeEnd, schedule.TimeStart)
+		Where(
+			"date = ?::date AND time_start < ?::time AND time_end > ?::time",
+			schedule.Date.String(),
+			schedule.TimeEnd.String(),
+			schedule.TimeStart.String(),
+		)
 	if ignoreID != nil {
 		base = base.Where("id <> ?", *ignoreID)
 	}

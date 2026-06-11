@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
 )
 
 type DateOnly pgtype.Date
@@ -46,6 +47,14 @@ func ParseDateOnly(value string) (DateOnly, error) {
 	return DateOnly(pgtype.Date{Time: parsed, Valid: true}), nil
 }
 
+func (DateOnly) GormDataType() string {
+	return "date"
+}
+
+func (DateOnly) GormDBDataType(db *gorm.DB, field *schema.Field) string {
+	return "date"
+}
+
 func ParseTimeOnly(value string) (TimeOnly, error) {
 	parsed, err := time.Parse("15:04:05", value)
 	if err != nil {
@@ -54,6 +63,14 @@ func ParseTimeOnly(value string) (TimeOnly, error) {
 
 	microseconds := int64(parsed.Hour()*60*60+parsed.Minute()*60+parsed.Second()) * 1000000
 	return TimeOnly(pgtype.Time{Microseconds: microseconds, Valid: true}), nil
+}
+
+func (TimeOnly) GormDataType() string {
+	return "time"
+}
+
+func (TimeOnly) GormDBDataType(db *gorm.DB, field *schema.Field) string {
+	return "time"
 }
 
 func (d DateOnly) String() string {
